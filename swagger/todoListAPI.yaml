@@ -1,0 +1,133 @@
+openapi: 3.0.0
+info:
+  title: Task Management API
+  description: API cho việc quản lý các nhiệm vụ trong ngày
+  version: 1.0.0
+  contact:
+    name: Anh Toan
+    email: anhtoan07112002@gmail.com
+servers:
+  - url: http://localhost:9000
+    description: Local server for testing
+components:
+  schemas:
+    Task:
+      type: object
+      required:
+        - tittle
+        - description
+        - status
+        - start_time
+        - end_time
+      properties:
+        id:
+          type: integer
+          description: ID của nhiệm vụ
+        tittle:
+          type: string
+          description: Tiêu đề của nhiệm vụ
+        description:
+          type: string
+          description: Mô tả chi tiết của nhiệm vụ
+        status:
+          type: string
+          description: Trạng thái của nhiệm vụ (PENDING, IN_PROGRESS, COMPLETED, OVERDUE)
+          enum: [PENDING, IN_PROGRESS, COMPLETED, OVERDUE]
+        start_time:
+          type: string
+          format: date-time
+          description: Thời gian bắt đầu nhiệm vụ
+        end_time:
+          type: string
+          format: date-time
+          description: Thời gian kết thúc nhiệm vụ
+paths:
+  /api/tasks/:
+    post:
+      summary: Tạo một nhiệm vụ mới
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '201':
+          description: Nhiệm vụ đã được tạo thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Dữ liệu đầu vào không hợp lệ
+    get:
+      summary: Lấy danh sách tất cả các nhiệm vụ
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Task'
+
+  /api/tasks/{id}/:
+    get:
+      summary: Lấy thông tin một nhiệm vụ cụ thể
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID của nhiệm vụ
+      responses:
+        '200':
+          description: Thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '404':
+          description: Nhiệm vụ không tồn tại
+    put:
+      summary: Cập nhật thông tin một nhiệm vụ cụ thể
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID của nhiệm vụ
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Task'
+      responses:
+        '200':
+          description: Nhiệm vụ đã được cập nhật thành công
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+        '400':
+          description: Dữ liệu đầu vào không hợp lệ
+        '404':
+          description: Nhiệm vụ không tồn tại
+    delete:
+      summary: Xóa một nhiệm vụ cụ thể
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID của nhiệm vụ
+      responses:
+        '204':
+          description: Nhiệm vụ đã được xóa thành công
+        '404':
+          description: Nhiệm vụ không tồn tại
