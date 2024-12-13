@@ -52,6 +52,7 @@ python manage.py migrate
 ## Running the Application
 ### Using Docker:
 ```bash
+docker build -t <appname>
 docker-compose up --build
 ```
 
