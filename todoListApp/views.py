@@ -7,13 +7,15 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from rest_framework.throttling import UserRateThrottle
 from django.utils import timezone
 
-from .models import Task
-from .serializers import TaskSerializer, UserSerializer
+from .models import Task, Notify
+from .serializers import TaskSerializer, UserSerializer, NotificationSerializer
 from .permissions import IsOwnerOrReadOnly
 from .form import RegisterForm
 from django.shortcuts import render, redirect
 from django.views.generic import TemplateView
 
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 class RegisterPageView(TemplateView):
     template_name = 'todoListApp/register.html'
     permission_classes = []
@@ -35,6 +37,14 @@ class TaskPageView(TemplateView):
 # Create your views here.
 class RegisterView(APIView):
     permission_classes = []  # Cho phép truy cập không cần xác thực
+    @swagger_auto_schema(
+        request_body=UserSerializer,
+        responses={
+            201: UserSerializer(),
+            400: 'Bad Request'
+        },
+        operation_description="Register a new user"
+    )
     def post(self, request):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -63,10 +73,30 @@ class TaskListCreateAPIView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            required=['tittle', 'describe', 'start_time', 'end_time'],
+            properties={
+                'tittle': openapi.Schema(type=openapi.TYPE_STRING),
+                'describe': openapi.Schema(type=openapi.TYPE_STRING),
+                'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='date-time'),
+                'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='date-time'),
+            }
+        ),
+        security=[{'Bearer': []}],
+        responses={
+            201: TaskSerializer(),
+            400: 'Bad Request'
+        },
+        operation_description="Create a new task"
+    )
+    
     def post(self, request):
         serializer = TaskSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
-            serializer.save(user=request.user)
+            task = serializer.save(user=request.user)
+            task.check_and_create_notifyction()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -100,6 +130,24 @@ class TaskDetailAPIView(APIView):
         serializer = TaskSerializer(task)
         return Response(serializer.data, status=status.HTTP_200_OK)
             
+    @swagger_auto_schema(
+        request_body=openapi.Schema(
+            type=openapi.TYPE_OBJECT,
+            # required=['tittle', 'describe', 'start_time', 'end_time'],
+            properties={
+                'tittle': openapi.Schema(type=openapi.TYPE_STRING),
+                'describe': openapi.Schema(type=openapi.TYPE_STRING),
+                'start_time': openapi.Schema(type=openapi.TYPE_STRING, format='date-time'),
+                'end_time': openapi.Schema(type=openapi.TYPE_STRING, format='date-time'),
+            }
+        ),
+        security=[{'Bearer': []}],
+        responses={
+            201: TaskSerializer(),
+            400: 'Bad Request'
+        },
+        operation_description="Edit a task"
+    )        
     def put(self, request, pk):
         task = self.get_object(pk)
         if not task:
@@ -133,3 +181,48 @@ class TaskDetailAPIView(APIView):
             status=status.HTTP_204_NO_CONTENT
         )
 
+class NotifyAPIView(APIView):
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [JWTAuthentication]
+
+    def get(self, request):
+        Notifys = Notify.objects.filter(
+            task__user=request.user,
+            is_readed=False                                
+        )
+        serializer = NotificationSerializer(Notifys, many=True)
+        return Response(serializer.data)
+class NotifyReadedAPIView(APIView):
+    @swagger_auto_schema(
+        operation_description="Mark a notification as read",
+        security=[{'Bearer': []}],
+        manual_parameters=[
+            openapi.Parameter(
+                'notification_id',
+                openapi.IN_PATH,
+                description="ID of the notification",
+                type=openapi.TYPE_INTEGER,
+                required=True
+            )
+        ],
+        responses={
+            200: openapi.Response(
+                description="Success",
+                schema=openapi.Schema(
+                    type=openapi.TYPE_OBJECT,
+                    properties={
+                        'status': openapi.Schema(type=openapi.TYPE_STRING)
+                    }
+                )
+            ),
+            404: 'Notification not found'
+        }
+    )
+    def put(self, request, notification_id):
+        try:
+            notify = Notify.objects.get(id=notification_id, task__user=request.user)
+            notify.is_readed = True
+            notify.save()
+            return Response({'status': 'Notify marked as read'})
+        except notify.DoesNotExist:
+            return Response({'error': 'Notify not found'}, status=404)

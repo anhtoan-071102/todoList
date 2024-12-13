@@ -10,6 +10,8 @@ django-cors-headers = "*"
 djangorestframework-simplejwt = "*"
 celery = "*"
 redis = "*"
+django-celery-beat = "*"
+drf-yasg = "*"
 
 [dev-packages]
 

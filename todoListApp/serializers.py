@@ -52,4 +52,4 @@ class UserSerializer(serializers.ModelSerializer):
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Notify
-        filter = ['id', 'task', 'content', 'notify_type', 'is_readed', 'create_at']
+        fields = ['id', 'task','content', 'notify_type', 'is_readed', 'create_at']
