@@ -75,3 +75,4 @@ celery -A todoList beat -l INFO
 - Swagger UI: /api/swagger/
 - ReDoc: /api/redoc/
 
+![Swagger UI](assets/image/demoToDoList.png)
